@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Investment Game - Analytics Edition</title>
+    <title>Investment Game - Start Fixed</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -13,15 +13,35 @@
             height: 100vh;
             width: 100vw;
         }
+        /* 시작 화면 스타일 */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #start-btn {
+            padding: 20px 50px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #00ff88;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #start-btn:hover { transform: scale(1.1); background: #00cc6e; }
+
         #ui-layer {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 100;
-            pointer-events: none;
+            top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between;
+            z-index: 100; pointer-events: none;
         }
         .ui-box {
             background: rgba(20, 20, 20, 0.98);
@@ -31,80 +51,48 @@
             backdrop-filter: blur(10px);
             pointer-events: auto;
         }
-        #balance-display {
-            font-size: 26px;
-            font-weight: 800;
-            color: #00ff88;
-        }
-        #timer-display {
-            font-size: 18px;
-            color: #ffcc00;
-            font-family: 'Monaco', monospace;
-        }
+        #balance-display { font-size: 26px; font-weight: 800; color: #00ff88; }
+        #timer-display { font-size: 18px; color: #ffcc00; font-family: 'Monaco', monospace; }
         #end-btn {
-            margin-top: 10px;
-            padding: 10px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            width: 100%;
+            margin-top: 10px; padding: 10px;
+            background: #e74c3c; color: white;
+            border: none; border-radius: 6px;
+            cursor: pointer; font-weight: bold; width: 100%;
         }
-
         #game-container { position: relative; width: 100%; height: 100%; z-index: 10; }
-
         .stock {
-            position: absolute;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: border 0.1s;
-            font-weight: 900;
-            background: rgba(35, 35, 35, 0.9);
-            user-select: none;
-            transform: translate(-50%, -50%);
+            position: absolute; border-radius: 50%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            cursor: pointer; transition: border 0.1s;
+            font-weight: 900; background: rgba(35, 35, 35, 0.9);
+            user-select: none; transform: translate(-50%, -50%);
         }
-        .stock.owned {
-            border: 7px solid #ffffff;
-            box-shadow: 0 0 35px rgba(255,255,255,0.5);
-            z-index: 50;
-        }
+        .stock.owned { border: 7px solid #ffffff; box-shadow: 0 0 35px rgba(255,255,255,0.5); z-index: 50; }
         .up { color: #ff4757; }
         .down { color: #3498db; }
         .arrow-label { font-size: 11px; line-height: 1; margin-bottom: 3px; font-weight: 800; }
         .price-label { font-size: 18px; letter-spacing: -0.5px; }
 
-        /* 결과 창 스타일 */
         #result-screen {
-            display: none;
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #111;
-            padding: 30px 40px;
-            border-radius: 20px;
-            border: 2px solid #444;
-            text-align: center;
-            z-index: 1000;
-            box-shadow: 0 0 100px rgba(0,0,0,0.9);
-            width: 500px;
+            display: none; position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #111; padding: 30px 40px;
+            border-radius: 20px; border: 2px solid #444;
+            text-align: center; z-index: 1000;
+            box-shadow: 0 0 100px rgba(0,0,0,0.9); width: 500px;
         }
-        .stat-line { margin: 10px 0; font-size: 16px; }
-        .stat-val { font-weight: bold; margin-left: 10px; }
-        #asset-chart {
-            background: #1a1a1a;
-            margin-top: 20px;
-            border-radius: 10px;
-            border: 1px solid #333;
-        }
+        #asset-chart { background: #1a1a1a; margin-top: 20px; border-radius: 10px; border: 1px solid #333; }
     </style>
 </head>
 <body>
+
+<div id="start-screen">
+    <h1 style="color: #ffcc00; margin-bottom: 30px;">INVESTMENT GAME</h1>
+    <input type="number" id="time-input" placeholder="플레이 시간(분) 입력" style="padding: 10px; border-radius: 5px; border: none; margin-bottom: 20px; text-align: center; width: 200px;">
+    <button id="start-btn" onclick="initGame()">START GAME</button>
+    <p style="color: #666; margin-top: 15px;">* 미입력 시 무제한 모드로 시작됩니다.</p>
+</div>
 
 <div id="ui-layer">
     <div class="ui-box">
@@ -120,40 +108,49 @@
 
 <div id="result-screen">
     <h2 style="color: #ffcc00; margin-bottom: 20px;">TRADE REPORT</h2>
-    <div class="stat-line">최대 보유액: <span id="max-stat" class="stat-val" style="color:#00ff88"></span></div>
-    <div class="stat-line">최소 보유액: <span id="min-stat" class="stat-val" style="color:#ff4757"></span></div>
-    <div class="stat-line">초당 평균 손익: <span id="avg-stat" class="stat-val"></span></div>
-    
+    <div style="margin: 10px 0;">최대 보유액: <span id="max-stat" style="color:#00ff88; font-weight: bold;"></span></div>
+    <div style="margin: 10px 0;">최소 보유액: <span id="min-stat" style="color:#ff4757; font-weight: bold;"></span></div>
+    <div style="margin: 10px 0;">초당 평균 손익: <span id="avg-stat" style="font-weight: bold;"></span></div>
     <canvas id="asset-chart" width="420" height="180"></canvas>
-    
     <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
     <button onclick="location.reload()" style="padding: 10px 25px; cursor: pointer; border-radius: 8px; font-weight: bold; background:#fff; border:none;">RESTART</button>
 </div>
 
 <script>
     let balance = 1000;
-    let startTime = Date.now();
-    let isGameRunning = true;
+    let startTime;
+    let isGameRunning = false;
     let maxBalance = 1000;
     let minBalance = 1000;
     let stocks = [];
     let timeLimit = 0;
-    
-    // 그래프용 데이터 저장
     let assetHistory = [1000];
 
     const container = document.getElementById('game-container');
     const balanceEl = document.getElementById('balance');
     const timerEl = document.getElementById('timer-display');
 
-    window.onload = () => {
-        const input = prompt("플레이할 시간(분)을 입력하세요. (미입력 시 무제한)", "1");
-        if (input && !isNaN(input)) {
-            timeLimit = parseFloat(input) * 60;
-        } else {
-            timeLimit = 0;
+    // 게임 초기화 및 시작
+    function initGame() {
+        const inputVal = document.getElementById('time-input').value;
+        if (inputVal && !isNaN(inputVal)) {
+            timeLimit = parseFloat(inputVal) * 60;
         }
-    };
+        
+        document.getElementById('start-screen').style.display = 'none';
+        isGameRunning = true;
+        startTime = Date.now();
+        
+        // 자산 기록 시작
+        setInterval(() => {
+            if (!isGameRunning) return;
+            let totalAsset = balance;
+            stocks.forEach(s => { if (s.owned) totalAsset += s.price; });
+            assetHistory.push(totalAsset);
+        }, 1000);
+
+        gameLoop();
+    }
 
     function getPyramidPeak() {
         const rand = Math.random() * 100;
@@ -172,7 +169,7 @@
     }
 
     function createStock() {
-        if (stocks.length >= MAX_STOCKS || !isGameRunning) return;
+        if (stocks.length >= 15 || !isGameRunning) return;
         let x = 150 + Math.random() * (window.innerWidth - 300);
         let y = 150 + Math.random() * (window.innerHeight - 300);
         const stockDiv = document.createElement('div');
@@ -206,131 +203,66 @@
     function drawGraph() {
         const canvas = document.getElementById('asset-chart');
         const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        const padding = 20;
-
-        const maxVal = Math.max(...assetHistory, 2000);
-        const minVal = Math.min(...assetHistory, 0);
+        const w = canvas.width, h = canvas.height, p = 20;
+        const maxVal = Math.max(...assetHistory, 2000), minVal = Math.min(...assetHistory, 0);
         const range = maxVal - minVal;
-
-        ctx.clearRect(0, 0, width, height);
-
-        // 가이드 라인 (시작점 $1,000)
-        const startY = height - padding - ((1000 - minVal) / range) * (height - 2 * padding);
-        ctx.strokeStyle = '#333';
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(padding, startY);
-        ctx.lineTo(width - padding, startY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // 선 그리기
-        ctx.strokeStyle = '#00ff88';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-
+        ctx.clearRect(0,0,w,h);
+        ctx.strokeStyle = '#333'; ctx.setLineDash([5,5]); ctx.beginPath();
+        const startY = h - p - ((1000 - minVal) / range) * (h - 2*p);
+        ctx.moveTo(p, startY); ctx.lineTo(w-p, startY); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 2; ctx.beginPath();
         assetHistory.forEach((val, i) => {
-            const x = padding + (i / (assetHistory.length - 1)) * (width - 2 * padding);
-            const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+            const x = p + (i / (assetHistory.length - 1)) * (w - 2 * p);
+            const y = h - p - ((val - minVal) / range) * (h - 2 * p);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
-
         ctx.stroke();
-        
-        // 지점 강조
-        ctx.fillStyle = '#ffcc00';
-        ctx.beginPath();
-        const lastVal = assetHistory[assetHistory.length - 1];
-        const lastX = width - padding;
-        const lastY = height - padding - ((lastVal - minVal) / range) * (height - 2 * padding);
-        ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
-        ctx.fill();
     }
 
     function endGame() {
         if (!isGameRunning) return;
         isGameRunning = false;
-        
-        stocks.forEach(s => { if (s.owned) { balance += Math.floor(s.price); } });
-        assetHistory.push(balance); // 최종 정산가 기록
-
+        stocks.forEach(s => { if (s.owned) balance += Math.floor(s.price); });
+        assetHistory.push(balance);
         const totalTime = (Date.now() - startTime) / 1000;
-        const totalProfit = balance - 1000;
-        const avgProfit = (totalProfit / (totalTime || 1)).toFixed(2);
-
         document.getElementById('max-stat').innerText = `$ ${Math.floor(maxBalance).toLocaleString()}`;
         document.getElementById('min-stat').innerText = `$ ${Math.floor(minBalance).toLocaleString()}`;
-        document.getElementById('avg-stat').innerText = `$ ${avgProfit} / sec`;
-        
+        document.getElementById('avg-stat').innerText = `$ ${((balance - 1000) / (totalTime || 1)).toFixed(2)} / sec`;
         document.getElementById('result-screen').style.display = 'block';
         drawGraph();
     }
 
-    // 1초마다 총 자산(현금+보유주식) 기록
-    setInterval(() => {
-        if (!isGameRunning) return;
-        let totalAsset = balance;
-        stocks.forEach(s => { if (s.owned) totalAsset += s.price; });
-        assetHistory.push(totalAsset);
-    }, 1000);
-
     function gameLoop() {
         if (!isGameRunning) return;
         const now = Date.now();
-        const currentElapsed = (now - startTime) / 1000;
+        const elapsed = (now - startTime) / 1000;
         const limitStr = timeLimit > 0 ? `${timeLimit}s` : "∞";
-        timerEl.innerText = `TIME: ${currentElapsed.toFixed(1)}s / ${limitStr}`;
-        
-        if (timeLimit > 0 && currentElapsed >= timeLimit) { endGame(); return; }
-        if (stocks.length < MAX_STOCKS && Math.random() < 0.05) createStock();
+        timerEl.innerText = `TIME: ${elapsed.toFixed(1)}s / ${limitStr}`;
+        if (timeLimit > 0 && elapsed >= timeLimit) { endGame(); return; }
+        if (stocks.length < 15 && Math.random() < 0.05) createStock();
 
         let currentTickAsset = balance;
         for (let i = stocks.length - 1; i >= 0; i--) {
             const s = stocks[i];
             if (now - s.lastStageUpdate > 1200) { s.currentStage = determineStage(s.price); s.lastStageUpdate = now; }
-            const stageInfo = s.currentStage;
-            const arrows = s.state === 'UP' ? stageInfo.arrows : stageInfo.arrows.replace(/▲/g, '▼');
-            const fallMultiplier = s.state === 'DOWN' ? 2.2 : 1.0;
-            const volatility = s.baseSpeed * (1 + Math.pow(s.price / 2000, 2)) * stageInfo.mult * fallMultiplier;
-
-            if (s.state === 'UP') { s.price += volatility; if (s.price >= s.peak) { s.price = s.peak; s.state = 'DOWN'; } }
-            else { s.price -= volatility; if (s.price <= 0) { container.removeChild(s.el); stocks.splice(i, 1); continue; } }
-            
+            const st = s.currentStage;
+            const arrows = s.state === 'UP' ? st.arrows : st.arrows.replace(/▲/g, '▼');
+            const fall = s.state === 'DOWN' ? 2.2 : 1.0;
+            const vol = s.baseSpeed * (1 + Math.pow(s.price / 2000, 2)) * st.mult * fall;
+            if (s.state === 'UP') { s.price += vol; if (s.price >= s.peak) s.state = 'DOWN'; }
+            else { s.price -= vol; if (s.price <= 0) { container.removeChild(s.el); stocks.splice(i, 1); continue; } }
             if (s.owned) currentTickAsset += s.price;
-
             s.radius = (60 + (s.price / 10000) * 150) / 2;
             s.el.style.width = `${s.radius * 2}px`; s.el.style.height = `${s.radius * 2}px`;
             s.el.style.left = `${s.x}px`; s.el.style.top = `${s.y}px`;
             s.el.className = `stock ${s.state === 'UP' ? 'up' : 'down'} ${s.owned ? 'owned' : ''}`;
             s.el.innerHTML = `<div class="arrow-label">${arrows}</div><div class="price-label">${Math.floor(s.price).toLocaleString()}</div>`;
         }
-
-        // 실시간 최고/최저 자산 업데이트 (보유 가치 포함)
         if (currentTickAsset > maxBalance) maxBalance = currentTickAsset;
         if (currentTickAsset < minBalance) minBalance = currentTickAsset;
-
-        // 충돌 방지 로직 생략(기존 동일)
-        for (let i = 0; i < stocks.length; i++) {
-            for (let j = i + 1; j < stocks.length; j++) {
-                const s1 = stocks[i], s2 = stocks[j];
-                const dx = s2.x - s1.x, dy = s2.y - s1.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const minDist = s1.radius + s2.radius + 15;
-                if (dist < minDist) {
-                    const angle = Math.atan2(dy, dx), overlap = (minDist - dist) * 0.2;
-                    s1.x -= Math.cos(angle) * overlap; s1.y -= Math.sin(angle) * overlap;
-                    s2.x += Math.cos(angle) * overlap; s2.y += Math.sin(angle) * overlap;
-                }
-            }
-        }
-
         balanceEl.innerText = Math.floor(balance).toLocaleString();
         requestAnimationFrame(gameLoop);
     }
-    gameLoop();
 </script>
 </body>
 </html>
