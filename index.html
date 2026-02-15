@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Investment Game - Start Fixed</title>
+    <title>Investment Game - No Overlap</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -64,9 +64,11 @@
             position: absolute; border-radius: 50%;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            cursor: pointer; transition: border 0.1s;
+            cursor: pointer; transition: border 0.1s, background 0.1s; /* 위치 이동은 JS로 처리하므로 transition 제거 */
             font-weight: 900; background: rgba(35, 35, 35, 0.9);
             user-select: none; transform: translate(-50%, -50%);
+            /* 부드러운 이동을 위해 will-change 추가 */
+            will-change: top, left, width, height; 
         }
         .stock.owned { border: 7px solid #ffffff; box-shadow: 0 0 35px rgba(255,255,255,0.5); z-index: 50; }
         .up { color: #ff4757; }
@@ -170,18 +172,44 @@
 
     function createStock() {
         if (stocks.length >= 15 || !isGameRunning) return;
-        let x = 150 + Math.random() * (window.innerWidth - 300);
-        let y = 150 + Math.random() * (window.innerHeight - 300);
+
+        // [변경점 1] 겹치지 않는 위치 찾기 시도 (최대 50번 시도)
+        let x, y, isValidPosition = false;
+        let attempts = 0;
+        const initialRadius = 30; // 초기 생성 반지름 예측값
+
+        while (!isValidPosition && attempts < 50) {
+            x = 100 + Math.random() * (window.innerWidth - 200);
+            y = 100 + Math.random() * (window.innerHeight - 200);
+            isValidPosition = true;
+
+            for (let s of stocks) {
+                const dx = x - s.x;
+                const dy = y - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < initialRadius + s.radius + 10) { // 10px 여유
+                    isValidPosition = false;
+                    break;
+                }
+            }
+            attempts++;
+        }
+
+        // 공간이 없으면 생성 포기
+        if (!isValidPosition && stocks.length > 5) return; 
+
         const stockDiv = document.createElement('div');
         stockDiv.className = 'stock';
         const initialStatus = determineStage(1);
+        
         const stockData = {
-            el: stockDiv, x: x, y: y, radius: 25, price: 1,
+            el: stockDiv, x: x, y: y, radius: initialRadius, price: 1,
             owned: false, state: 'UP', peak: getPyramidPeak(),
             baseSpeed: Math.random() * 0.5 + 0.3,
             currentStage: initialStatus,
             lastStageUpdate: Date.now()
         };
+
         stockDiv.onmousedown = () => {
             if (!isGameRunning) return;
             if (!stockData.owned) {
@@ -232,6 +260,48 @@
         drawGraph();
     }
 
+    // [변경점 2] 물리 엔진: 원들이 겹치면 서로 밀어내고 화면 안으로 제한하는 함수
+    function resolveCollisions() {
+        // 1. 서로 밀어내기
+        for (let i = 0; i < stocks.length; i++) {
+            for (let j = i + 1; j < stocks.length; j++) {
+                const s1 = stocks[i];
+                const s2 = stocks[j];
+                const dx = s2.x - s1.x;
+                const dy = s2.y - s1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = s1.radius + s2.radius + 10; // 여유 공간 10px
+
+                if (dist < minDist) {
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDist - dist;
+                    const force = 0.1; // 부드럽게 밀어내는 힘
+
+                    // 겹친 만큼 반대 방향으로 이동
+                    const moveX = Math.cos(angle) * overlap * force;
+                    const moveY = Math.sin(angle) * overlap * force;
+
+                    s1.x -= moveX;
+                    s1.y -= moveY;
+                    s2.x += moveX;
+                    s2.y += moveY;
+                }
+            }
+        }
+
+        // 2. 화면 밖으로 나가지 않게 하기
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const padding = 100; // UI 고려한 여백
+
+        stocks.forEach(s => {
+            if (s.x < s.radius + 20) s.x = s.radius + 20;
+            if (s.x > width - s.radius - 20) s.x = width - s.radius - 20;
+            if (s.y < s.radius + 80) s.y = s.radius + 80; // 상단 UI 공간
+            if (s.y > height - s.radius - 20) s.y = height - s.radius - 20;
+        });
+    }
+
     function gameLoop() {
         if (!isGameRunning) return;
         const now = Date.now();
@@ -239,28 +309,49 @@
         const limitStr = timeLimit > 0 ? `${timeLimit}s` : "∞";
         timerEl.innerText = `TIME: ${elapsed.toFixed(1)}s / ${limitStr}`;
         if (timeLimit > 0 && elapsed >= timeLimit) { endGame(); return; }
+        
         if (stocks.length < 15 && Math.random() < 0.05) createStock();
 
         let currentTickAsset = balance;
+
+        // 1. 가격 변동 및 반지름 계산 업데이트
         for (let i = stocks.length - 1; i >= 0; i--) {
             const s = stocks[i];
             if (now - s.lastStageUpdate > 1200) { s.currentStage = determineStage(s.price); s.lastStageUpdate = now; }
+            
             const st = s.currentStage;
             const arrows = s.state === 'UP' ? st.arrows : st.arrows.replace(/▲/g, '▼');
             const fall = s.state === 'DOWN' ? 2.2 : 1.0;
             const vol = s.baseSpeed * (1 + Math.pow(s.price / 2000, 2)) * st.mult * fall;
+            
             if (s.state === 'UP') { s.price += vol; if (s.price >= s.peak) s.state = 'DOWN'; }
             else { s.price -= vol; if (s.price <= 0) { container.removeChild(s.el); stocks.splice(i, 1); continue; } }
+            
             if (s.owned) currentTickAsset += s.price;
-            s.radius = (60 + (s.price / 10000) * 150) / 2;
-            s.el.style.width = `${s.radius * 2}px`; s.el.style.height = `${s.radius * 2}px`;
-            s.el.style.left = `${s.x}px`; s.el.style.top = `${s.y}px`;
+            
+            // 반지름 계산 (DOM 업데이트 전에 미리 계산)
+            s.radius = (60 + (s.price / 10000) * 150) / 2; 
+
+            // DOM 텍스트 업데이트
             s.el.className = `stock ${s.state === 'UP' ? 'up' : 'down'} ${s.owned ? 'owned' : ''}`;
             s.el.innerHTML = `<div class="arrow-label">${arrows}</div><div class="price-label">${Math.floor(s.price).toLocaleString()}</div>`;
         }
+
+        // 2. [변경점] 충돌 해결 (위치 조정)
+        resolveCollisions();
+
+        // 3. 최종 위치를 DOM에 반영
+        stocks.forEach(s => {
+            s.el.style.width = `${s.radius * 2}px`;
+            s.el.style.height = `${s.radius * 2}px`;
+            s.el.style.left = `${s.x}px`;
+            s.el.style.top = `${s.y}px`;
+        });
+
         if (currentTickAsset > maxBalance) maxBalance = currentTickAsset;
         if (currentTickAsset < minBalance) minBalance = currentTickAsset;
         balanceEl.innerText = Math.floor(balance).toLocaleString();
+        
         requestAnimationFrame(gameLoop);
     }
 </script>
